@@ -1,8 +1,8 @@
 {
   "name": "noble-xwing",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "test": "jest"
   },
@@ -16,5 +16,34 @@
     "prettier": "3.5.1",
     "ts-jest": "^29.2.5",
     "typescript": "~5.7.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lukajcb/noble-xwing.git"
+  },
+  "keywords": [
+    "pqc",
+    "post-quantum",
+    "elliptic",
+    "curve",
+    "cryptography",
+    "ed25519",
+    "p256",
+    "p384",
+    "p521",
+    "ed448",
+    "x25519",
+    "ed25519",
+    "noble",
+    "ml-kem",
+    "ml-dsa",
+    "slh-dsa",
+    "kyber",
+    "dilithium",
+    "sphincs",
+    "fips203",
+    "fips204",
+    "fips205",
+    "edwards"
+  ]
 }
