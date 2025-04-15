@@ -1,4 +1,4 @@
-import { bytesToHex, hexToBytes } from "@noble/ciphers/utils"
+import { bytesToHex, hexToBytes } from "@noble/curves/abstract/utils"
 import { generateKeyPair, encapsulate, decapsulate } from "../src/xwingSparse"
 
 test("xwing test vector 1", () => {
@@ -17,18 +17,18 @@ test("xwing test vector 1", () => {
   vectorTest(seed, pk, eseed, ct, ss)
 })
 
-function vectorTest(seed: string, pk: string, eseed: string, ct: string, ss: string) {
-  const [sk, pkI] = generateKeyPair(hexToBytes(seed))
+function vectorTest(seed: string, pkG: string, eseed: string, ctG: string, ssG: string) {
+  const { sk, pk } = generateKeyPair(hexToBytes(seed))
 
   expect(bytesToHex(sk)).toBe(seed)
-  expect(bytesToHex(pkI)).toBe(pk)
+  expect(bytesToHex(pk)).toBe(pkG)
 
-  const [ssI, ctI] = encapsulate(pkI, hexToBytes(eseed))
+  const { ss, ct } = encapsulate(pk, hexToBytes(eseed))
 
-  expect(bytesToHex(ssI)).toBe(ss)
-  expect(bytesToHex(ctI)).toBe(ct)
+  expect(bytesToHex(ss)).toBe(ssG)
+  expect(bytesToHex(ct)).toBe(ctG)
 
-  expect(bytesToHex(decapsulate(ctI, sk))).toBe(bytesToHex(ssI))
+  expect(bytesToHex(decapsulate(ct, sk))).toBe(bytesToHex(ss))
 }
 
 test("xwing test vector 2", () => {

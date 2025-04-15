@@ -1,17 +1,26 @@
 {
   "name": "noble-xwing",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "build": "tsc",
     "test": "jest"
   },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
   "dependencies": {
-    "@noble/ciphers": "^1.2.1",
     "@noble/curves": "^1.8.1",
     "@noble/post-quantum": "^0.4.0"
   },
   "devDependencies": {
+    "@noble/ciphers": "^1.2.1",
     "@types/jest": "^29.5.14",
     "prettier": "3.5.1",
     "ts-jest": "^29.2.5",

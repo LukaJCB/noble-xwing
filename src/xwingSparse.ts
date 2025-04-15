@@ -34,9 +34,9 @@ function expandDecapsulationKey(seed: Uint8Array): [Uint8Array, Uint8Array, Uint
   return [skM, skX, pkM, pkX]
 }
 
-export function generateKeyPair(seed: Uint8Array = randomBytes(32)): [Uint8Array, Uint8Array] {
+export function generateKeyPair(seed: Uint8Array = randomBytes(32)): { sk: Uint8Array; pk: Uint8Array } {
   const [, , pkM, pkX] = expandDecapsulationKey(seed)
-  return [seed, new Uint8Array([...pkM, ...pkX])]
+  return { sk: seed, pk: new Uint8Array([...pkM, ...pkX]) }
 }
 
 const xWingLabel = [0x5c, 0x2e, 0x2f, 0x2f, 0x5e, 0x5c]
@@ -54,7 +54,10 @@ function combiner(ssM: Uint8Array, ssX: Uint8Array, ctX: Uint8Array, pkX: Uint8A
 //   return [privateKey.subarray(0, mlKemPrivateKeyLength), privateKey.subarray(mlKemPrivateKeyLength, mlKemPrivateKeyLength + x25519PrivateKeyLength)]
 // }
 
-export function encapsulate(publicKey: Uint8Array, eseed: Uint8Array = randomBytes(64)): [Uint8Array, Uint8Array] {
+export function encapsulate(
+  publicKey: Uint8Array,
+  eseed: Uint8Array = randomBytes(64),
+): { ss: Uint8Array; ct: Uint8Array } {
   const pkM = publicKey.subarray(0, 1184)
   const pkX = publicKey.subarray(1184, 1216)
   const ekX = eseed.subarray(32, 64)
@@ -65,7 +68,7 @@ export function encapsulate(publicKey: Uint8Array, eseed: Uint8Array = randomByt
 
   const ss = combiner(ssM, ssX, ctX, pkX)
 
-  return [ss, new Uint8Array([...ctM, ...ctX])]
+  return { ss, ct: new Uint8Array([...ctM, ...ctX]) }
 }
 
 export function decapsulate(cipherText: Uint8Array, secretKey: Uint8Array): Uint8Array {
