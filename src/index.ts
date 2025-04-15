@@ -1,1 +1,1 @@
-export { generateKeyPair, encapsulate, decapsulate } from "./xwingSparse"
+export { generateKeyPair, encapsulate, decapsulate } from "./xwing"

@@ -1,5 +1,5 @@
 import { bytesToHex, hexToBytes } from "@noble/curves/abstract/utils"
-import { generateKeyPair, encapsulate, decapsulate } from "../src/xwingSparse"
+import { generateKeyPair, encapsulate, decapsulate } from "../src/xwing"
 
 test("xwing test vector 1", () => {
   const seed = "7f9c2ba4e88f827d616045507605853ed73b8093f6efbc88eb1a6eacfa66ef26"

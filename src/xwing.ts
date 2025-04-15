@@ -1,114 +1,52 @@
 import { ml_kem768 } from "@noble/post-quantum/ml-kem"
 import { randomBytes } from "@noble/post-quantum/utils"
-import { sha3_256 } from "@noble/hashes/sha3"
+import { sha3_256, shake256 } from "@noble/hashes/sha3"
 
 import { x25519 } from "@noble/curves/ed25519"
-import { KEM } from "./kem"
 
-export type XwingKem = KEM<XwingSharedSecret, XwingCipherText, XwingPublicKey, XwingPrivateKey>
-
-export const xwingKem: XwingKem = {
-  keygen: keygen,
-  encapsulate: encapsulate,
-  decapsulate: decapsulate,
-  encodeSS: encodeSharedSecret,
-  encodeCT: encodeCipherText,
-  encodePK: encodePublicKey,
-  encodeSK: encodePrivateKey,
+function expandDecapsulationKey(seed: Uint8Array): [Uint8Array, Uint8Array, Uint8Array, Uint8Array] {
+  const expanded = shake256(seed, { dkLen: 96 })
+  const { publicKey: pkM, secretKey: skM } = ml_kem768.keygen(expanded.subarray(0, 64))
+  const skX = expanded.subarray(64, 96)
+  const pkX = x25519.getPublicKey(skX)
+  return [skM, skX, pkM, pkX]
 }
 
-export type XwingPublicKey = {
-  ecdhPublicKey: Uint8Array
-  mlKemPublicKey: Uint8Array
-}
-export type XwingPrivateKey = {
-  ecdhPublicKey: Uint8Array
-  ecdhPrivateKey: Uint8Array
-  mlKemPrivateKey: Uint8Array
+export function generateKeyPair(seed: Uint8Array = randomBytes(32)): { sk: Uint8Array; pk: Uint8Array } {
+  const [, , pkM, pkX] = expandDecapsulationKey(seed)
+  return { sk: seed, pk: new Uint8Array([...pkM, ...pkX]) }
 }
 
-export type XwingCipherText = {
-  mlKemCipherText: Uint8Array
-  ecdhCipherText: Uint8Array
-}
-export type XwingSharedSecret = {
-  mlKemSharedSecret: Uint8Array
-  ecdhSharedSecret: Uint8Array
-  ecdhCipherText: Uint8Array
-  ecdhPublicKey: Uint8Array
+const xWingLabel = [0x5c, 0x2e, 0x2f, 0x2f, 0x5e, 0x5c]
+
+function combiner(ssM: Uint8Array, ssX: Uint8Array, ctX: Uint8Array, pkX: Uint8Array) {
+  return sha3_256(new Uint8Array([...ssM, ...ssX, ...ctX, ...pkX, ...xWingLabel]))
 }
 
-function encodeSharedSecret(sharedSecret: XwingSharedSecret): Uint8Array {
-  return sha3_256(
-    new Uint8Array([
-      ...[0x5c, 0x2e, 0x2f, 0x2f, 0x5e, 0x5c],
-      ...sharedSecret.mlKemSharedSecret,
-      ...sharedSecret.ecdhSharedSecret,
-      ...sharedSecret.ecdhCipherText,
-      ...sharedSecret.ecdhPublicKey,
-    ]),
-  )
+export function encapsulate(
+  publicKey: Uint8Array,
+  eseed: Uint8Array = randomBytes(64),
+): { ss: Uint8Array; ct: Uint8Array } {
+  const pkM = publicKey.subarray(0, 1184)
+  const pkX = publicKey.subarray(1184, 1216)
+  const ekX = eseed.subarray(32, 64)
+  const ctX = x25519.getPublicKey(ekX)
+  const ssX = x25519.getSharedSecret(ekX, pkX)
+
+  const { cipherText: ctM, sharedSecret: ssM } = ml_kem768.encapsulate(pkM, eseed.subarray(0, 32))
+
+  const ss = combiner(ssM, ssX, ctX, pkX)
+
+  return { ss, ct: new Uint8Array([...ctM, ...ctX]) }
 }
 
-function encodePrivateKey(privateKey: XwingPrivateKey): Uint8Array {
-  return new Uint8Array([...privateKey.mlKemPrivateKey, ...privateKey.ecdhPrivateKey, ...privateKey.ecdhPublicKey])
-}
+export function decapsulate(cipherText: Uint8Array, secretKey: Uint8Array): Uint8Array {
+  const [skM, skX, , pkX] = expandDecapsulationKey(secretKey)
+  const ctM = cipherText.subarray(0, 1088)
+  const ctX = cipherText.subarray(1088, 1120)
+  const ssM = ml_kem768.decapsulate(ctM, skM)
 
-function encodePublicKey(publicKey: XwingPublicKey): Uint8Array {
-  return new Uint8Array([...publicKey.mlKemPublicKey, ...publicKey.ecdhPublicKey])
-}
+  const ssX = x25519.getSharedSecret(skX, ctX)
 
-function encodeCipherText(cipherText: XwingCipherText): Uint8Array {
-  return new Uint8Array([...cipherText.mlKemCipherText, ...cipherText.ecdhCipherText])
-}
-
-function encapsulate(publicKey: XwingPublicKey): {
-  ct: XwingCipherText
-  ss: XwingSharedSecret
-} {
-  const { cipherText: ct_m, sharedSecret: ss_m } = ml_kem768.encapsulate(publicKey.mlKemPublicKey)
-  const ek_x = x25519.utils.randomPrivateKey()
-  const ct_x = x25519.getPublicKey(ek_x)
-  const ss_x = x25519.getSharedSecret(ek_x, publicKey.ecdhPublicKey)
-
-  const ct = { mlKemCipherText: ct_m, ecdhCipherText: ct_x }
-
-  const ss = {
-    mlKemSharedSecret: ss_m,
-    ecdhSharedSecret: ss_x,
-    ecdhCipherText: ct_x,
-    ecdhPublicKey: publicKey.ecdhPublicKey,
-  }
-
-  return { ct, ss }
-}
-
-function decapsulate(cipherText: XwingCipherText, privateKey: XwingPrivateKey): XwingSharedSecret {
-  const [sk_m, sk_x, pk_x] = [privateKey.mlKemPrivateKey, privateKey.ecdhPrivateKey, privateKey.ecdhPublicKey]
-  const ss_m = ml_kem768.decapsulate(cipherText.mlKemCipherText, sk_m)
-
-  const ss_x = x25519.getSharedSecret(sk_x, cipherText.ecdhCipherText)
-
-  return {
-    mlKemSharedSecret: ss_m,
-    ecdhSharedSecret: ss_x,
-    ecdhCipherText: cipherText.ecdhCipherText,
-    ecdhPublicKey: pk_x,
-  }
-}
-
-function keygen(): { pk: XwingPublicKey; sk: XwingPrivateKey } {
-  const seed = randomBytes(96)
-  const mlKemKeyPair = ml_kem768.keygen(seed.slice(0, 64))
-  const ecdhPrivateKey = seed.slice(64, 96)
-  const ecdhPublicKey = x25519.getPublicKey(ecdhPrivateKey)
-
-  return {
-    pk: { ecdhPublicKey, mlKemPublicKey: mlKemKeyPair.publicKey },
-    sk: {
-      ecdhPublicKey,
-      ecdhPrivateKey,
-      mlKemPrivateKey: mlKemKeyPair.secretKey,
-    },
-  }
+  return combiner(ssM, ssX, ctX, pkX)
 }
