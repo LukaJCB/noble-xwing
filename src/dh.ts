@@ -1,5 +1,3 @@
-import { KEM } from "./kem"
-
 export type DH = {
   genSecretKey: () => Uint8Array
   publicKey: (sk: Uint8Array) => Uint8Array

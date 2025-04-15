@@ -41,7 +41,7 @@ export type XwingSharedSecret = {
 function encodeSharedSecret(sharedSecret: XwingSharedSecret): Uint8Array {
   return sha3_256(
     new Uint8Array([
-      ...new Uint8Array([0x5c, 0x2e, 0x2f, 0x2f, 0x5e, 0x5c]),
+      ...[0x5c, 0x2e, 0x2f, 0x2f, 0x5e, 0x5c],
       ...sharedSecret.mlKemSharedSecret,
       ...sharedSecret.ecdhSharedSecret,
       ...sharedSecret.ecdhCipherText,
