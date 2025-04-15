@@ -4,6 +4,19 @@ Typescript implementation of the X-Wing hybrid Post Quantum KEM using the noble 
 
 TL;DR: This library allows the use of a KEM combining the ML-KEM-768 Post Quantum KEM with X25519 ECDH.
 
+
+# Installation
+```bash
+# npm
+npm install noble-xwing
+
+# yarn
+yarn add noble-xwing
+
+# pnpm
+pnpm add noble-xwing
+```
+
 ## Example usage
 
 ```typescript
